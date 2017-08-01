@@ -1,0 +1,267 @@
+﻿<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+        * {
+            font-family: "Meiryo";
+            font-size: 13px;
+        }
+
+        body, html {
+            margin: 0;
+        }
+
+        html {
+            /* Bottom-right Handle */
+            background-image: url(images/handle.png);
+            background-position: bottom right;
+            background-repeat: no-repeat;
+            box-sizing: border-box;
+            height: 100%;
+
+            /* Hide the scrollbar */
+            overflow: hidden;
+
+            /* Background Color */
+            background-color: transparent;
+        }
+        
+        th, td {
+            text-align: center;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        
+        #combatantTable {
+            table-layout: auto;
+            border-spacing: 5px 0px;
+        }
+
+        #combatantTableBody * {
+            color: #e8ffff;
+            font-weight: 500;
+
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: clip;
+        }
+
+        #encounter, #combatantTableHeader * {
+            color: #e8ffff;
+            font-weight: 500;
+            
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: clip;
+        }
+    </style>
+    <script>
+        var headerDefine = { text: "{name}", align: "center" };
+        var bodyDefine = { text: "{Job}\xa0\xa0\xa0\xa0\xa0{encdps} DPS", align: "center" };
+
+        // Highlight Self - Example
+        function myselfEffect(cell, combatant, index) {
+            cell.style.color = "#e8ffff";
+            cell.style.textShadow = "-1px 0 3px #000000, 0 1px 3px #000000, 1px 0 3px #000000, 0 -1px 3px #000000";
+        }
+
+        // Event Listeners - onOverlayDataUpdate
+        document.addEventListener("onOverlayDataUpdate", function (e) {
+            update(e.detail);
+        });
+        window.addEventListener("message", function (e) {
+            if (e.data.type === "onOverlayDataUpdate") {
+                update(e.data.detail);
+            }
+        });
+
+        // Update Display Elements
+        function update(data) {
+            updateCombatantListHeader(data);
+            updateCombatantList(data);
+        }
+
+        // Update Header
+        function updateCombatantListHeader(data) {
+            var table = document.getElementById('combatantTable');
+            var oldTableBody = table.tBodies.namedItem('combatantTableHeader');
+            var newTableBody = document.createElement("tbody");
+            newTableBody.id = "combatantTableHeader";
+            var tableList = newTableBody.insertRow();
+
+            // Create body content
+            var combatantIndex = 0
+            for (var combatantName in data.Combatant) {
+                var combatant = data.Combatant[combatantName];
+                var cell = tableList.insertCell(combatantIndex);
+                if (typeof headerDefine.text !== 'undefined') {
+                    var cellText;
+                    if (typeof headerDefine.text === 'function') {
+                        cellText = headerDefine.text(combatant, combatantIndex);
+                    } else {
+                        cellText = parseActFormat(headerDefine.text, combatant);
+                    }
+                    cell.innerText = cellText;
+                    
+                    if (combatantName === 'YOU') {
+                        cell.innerText = 'Waff Yr';
+                    }
+                    
+                    if (combatant.Job === "Whm" || combatant.Job === "Sch" || combatant.Job === "Ast") {
+                        cell.style.color = "#ecffd6";
+                        cell.style.textShadow = "-1px 0 1px #465b34, 0 1px 1px #465b34, 1px 0 1px #465b34, 0 -1px 1px #465b34";
+                    } else if (combatant.Job === "Drk" || combatant.Job === "War" || combatant.Job === "Pld") {
+                        cell.style.color = "#c5d0ff";
+                        cell.style.textShadow = "-1px 0 1px #202e80, 0 1px 1px #202e80, 1px 0 1px #202e80, 0 -1px 1px #202e80";
+                    } else {
+                        cell.style.color = "#ffa0a0";
+                        cell.style.textShadow = "-1px 0 1px #aa2d2d, 0 1px 1px #aa2d2d, 1px 0 1px #aa2d2d, 0 -1px 1px #aa2d2d";
+                    }
+                }
+                // Width
+                if (typeof(bodyDefine.width) !== 'undefined') {
+                    cell.style.width = bodyDefine.width;
+                    cell.style.maxWidth = bodyDefine.width;
+                }
+                // Line
+                if (typeof(headerDefine.align) !== 'undefined') {
+                    cell.style.textAlign = headerDefine.align;
+                }
+                // Effect
+                if (typeof headerDefine.effect === 'function') {
+                    headerDefine.effect(cell, combatant, combatantIndex);
+                }
+                combatantIndex++;
+            }
+
+            // Replace if exists, add to table if new
+            if (oldTableBody != void(0)) {
+                table.replaceChild(newTableBody, oldTableBody);
+            }
+            else {
+                table.appendChild(newTableBody);
+            }
+        }
+
+        // Update Player List
+        function updateCombatantList(data) {
+            var table = document.getElementById('combatantTable');
+            var oldTableBody = table.tBodies.namedItem('combatantTableBody');
+            var newTableBody = document.createElement("tbody");
+            newTableBody.id = "combatantTableBody";
+            var tableList = newTableBody.insertRow();
+
+
+            // Create body content
+            var combatantIndex = 0
+            for (var combatantName in data.Combatant) {
+                var combatant = data.Combatant[combatantName];
+                var cell = tableList.insertCell(combatantIndex);
+                
+                if (typeof bodyDefine.text !== 'undefined') {
+                    var cellText;
+                    if (typeof bodyDefine.text === 'function') {
+                        cellText = bodyDefine.text(combatant, combatantIndex);
+                    } else {
+                        cellText = parseActFormat(bodyDefine.text, combatant).toUpperCase();
+                    }
+                    cell.innerText = cellText;
+                    
+                    if (combatant.Job === "Whm" || combatant.Job === "Sch" || combatant.Job === "Ast") {
+                        cell.style.color = "#ecffd6";
+                        cell.style.textShadow = "-1px 0 1px #465b34, 0 1px 1px #465b34, 1px 0 1px #465b34, 0 -1px 1px #465b34";
+                    } else if (combatant.Job === "Drk" || combatant.Job === "War" || combatant.Job === "Pld") {
+                        cell.style.color = "#c5d0ff";
+                        cell.style.textShadow = "-1px 0 1px #202e80, 0 1px 1px #202e80, 1px 0 1px #202e80, 0 -1px 1px #202e80";
+                    } else {
+                        cell.style.color = "#ffa0a0";
+                        cell.style.textShadow = "-1px 0 1px #aa2d2d, 0 1px 1px #aa2d2d, 1px 0 1px #aa2d2d, 0 -1px 1px #aa2d2d";
+                    }
+                    
+                    if (combatantName === 'YOU') {
+                        cell.style.backgroundColor = "rgba(232, 255, 255, 0.90)";
+                        cell.style.borderRadius = "8px";
+                    } else if (combatantName === 'Limit Break' || combatant.Job === '') {
+                        cell.style.backgroundColor = "rgba(0, 0, 0, 0.20)";
+                        cell.style.borderRadius = "8px";
+                        cell.innerText = parseActFormat("{encdps} DPS", combatant).toUpperCase()
+                    } else {
+                        cell.style.backgroundColor = "rgba(0, 0, 0, 0.20)";
+                        cell.style.borderRadius = "8px";
+                    }
+                }
+                // Width
+                if (typeof(bodyDefine.width) !== 'undefined') {
+                    cell.style.width = bodyDefine.width;
+                    cell.style.maxWidth = bodyDefine.width;
+                }
+                // Line
+                if (typeof(bodyDefine.align) !== 'undefined') {
+                    cell.style.textAlign = bodyDefine.align;
+                }
+                // Effect
+                if (typeof bodyDefine.effect === 'function') {
+                    bodyDefine.effect(cell, combatant, combatantIndex);
+                }
+                combatantIndex++;
+            }
+
+            // Replace if exists, add to table if new
+            if (oldTableBody != void(0)) {
+                table.replaceChild(newTableBody, oldTableBody);
+            }
+            else {
+                table.appendChild(newTableBody);
+            }
+        }
+
+        // Obtain display string
+        function parseActFormat(str, dictionary)
+        {
+            var result = "";
+
+            var currentIndex = 0;
+            do {
+                var openBraceIndex = str.indexOf('{', currentIndex);
+                if (openBraceIndex < 0) {
+                    result += str.slice(currentIndex);
+                    break;
+                }
+                else {
+                    result += str.slice(currentIndex, openBraceIndex);
+                    var closeBraceIndex = str.indexOf('}', openBraceIndex);
+                    if (closeBraceIndex < 0) {
+                        // parse error!
+                        console.log("parseActFormat: Parse error: missing close-brace for " + openBraceIndex.toString() + ".");
+                        return "ERROR";
+                    }
+                    else {
+                        var tag = str.slice(openBraceIndex + 1, closeBraceIndex);
+                        if (typeof dictionary[tag] !== 'undefined') {
+                            result += dictionary[tag];
+                        } else {
+                            console.log("parseActFormat: Unknown tag: " + tag);
+                            result += "ERROR";
+                        }
+                        currentIndex = closeBraceIndex + 1;
+                    }
+                }
+            } while (currentIndex < str.length);
+
+            return result;
+        }
+    </script>
+</head>
+
+<body>
+    <div id="encounter">
+        <!-- Encounter information here -->
+    </div>
+
+    <table id="combatantTable">
+        <!-- Headers included here -->
+        <!-- Character info here -->
+    </table>
+</body>
+</html>
